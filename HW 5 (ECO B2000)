@@ -1,0 +1,66 @@
+October 07, 2022
+Md Muhibul Islam
+Introduction to Econometrics
+ECO B2000
+HW 5
+
+Group Member: Kseniia, Minghao deng, Joseph Holland
+
+On the basis of data, one thing is noticeable that certain people make "negative income" and certain people make more than 2 I want to exclude extreme cases by looking at people who are making incomes somewhere in between. 
+I also want to only consider people who can work full time (adults and not retired) and people who are working full time.
+
+
+
+```{r}
+load('acs2017_ny_data.RData')
+attach(acs2017_ny)
+summary(acs2017_ny)
+use_varb <- (AGE >= 18) & (AGE <= 65) & (HHINCOME >= 41600) & (HHINCOME <= 140900) & (UHRSWORK >= 35)
+dat_use <- subset(acs2017_ny,use_varb)
+detach()
+attach(dat_use)
+```
+
+
+
+Run my first regression by incoporate pretty much everything first. There are few larger categories being considered here: \
+1. Commute method: a base case is commute_other, and estimates are compared with commute_other (for example, estimates=5000 would mean people using this commute method will likely have $5000 more in terms of INCWAGE, this will be the same for all other categories with a base case) \
+2. Race where hispanic origin is considered base case. \
+3. Residential area where Staten Island is considered base case. \
+4. Sex, where male = 0. \
+5. FAMSIZE and number of child. \
+6. Rent and OWNCOST. \
+7. educational status, where no high school degree is considered base case. \
+
+
+```{r}
+huge_lm <- lm(INCWAGE ~ AGE + Commute_bus + Commute_car + Commute_rail + Commute_subway + has_AnyHealthIns + white + AfAm + Amindian + Asian + race_oth + in_Nassau + in_Westchester + in_Queens + in_Bronx + in_Brooklyn + in_Manhattan + female + NCHILD + FAMSIZE + RENT + OWNCOST + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+summary(huge_lm)
+```
+
+I want to base my t-test on a 95% confidence interval when testing slope estimates. \
+Most notably here are my races, where all of them have very high standard errors with estimates sometimes smaller than standard errors. Let's start from here.For all of them, I will always assume $H_0 = 0, H_1 \ne 0$. As given in the linear regression above, for White, we have p-value = 0.57, for AfAM, we have p-value = 0.1, for Amindian, we have p-value = 0.77, for Asian, we have p-value = 0.15, for race_oth, we have p-value = 0.06, all of which are higher than a/2, which is 0.025. Therefore, we failed to reject null hypothesis for all of these values. \
+It's notably interesting, because racial inequalities are often talked about in a lot of ways, but as shown here, there's no significance for a 95% confidence intervals. In fact, our smallest one is race_oth and there's no significance for a 90% confidence interval. For AfAm, which is often under represented, p-value = 0.1, which means we have significance only at an 80% confidence interval, which is hard to justify statistically speaking. \
+I think this is a phenomena specific to NYC. Most places are not as diverse and people don't often share the same level of equality across US. With this being said, I think it's a good idea to exclude those from my linear regression.
+
+
+```{r}
+huge_lm2 <- lm(INCWAGE ~ AGE + Commute_bus + Commute_car + Commute_rail + Commute_subway + has_AnyHealthIns + in_Nassau + in_Westchester + in_Queens + in_Bronx + in_Brooklyn + in_Manhattan + female + NCHILD + FAMSIZE + RENT + OWNCOST + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+summary(huge_lm2)
+```
+The next thing I am going to look at is in_Bronx. I am going to use the same hypothesis testing as before where $H_0 = 0, H_1 \ne 0$. It's worth nothing that if I am doing a one-tail testing with 95% confidence interval, in_Bronx would be significant, and other residential areas appear to affect the INCWAGE significantly. However, I do think if I take one residential areas out, I should take the rest out for consistency. \
+There are also certain overlaps between residential areas and commute methods as well as residential areas and rent/owncost that is causing the significance. For example, Manhattan simply has the highest ownership cost out of all areas, and that naturally makes people living there making more, because they are able to sustain the level of rent. It also makes sense for people living in Manhattan to not own a car because of the maintenance cost and how useless a car is in Manhattan. I once ran into a 4-hour traffic over 5 blocks because Mr.Biden went to make a speech at 57th St, and the road to Queensborough Bridge was blocked for security reasons. \
+These are just my speculations and let me take those out now and see what's left. \
+
+
+```{r}
+huge_lm3 <- lm(INCWAGE ~ AGE + Commute_bus + Commute_car + Commute_rail + Commute_subway + has_AnyHealthIns + female + NCHILD + FAMSIZE + RENT + OWNCOST + educ_hs + educ_somecoll + educ_college + educ_advdeg)
+summary(huge_lm3)
+```
+
+
+As shown above, everything now is very significant (p-value is <2e-16). This concludes my final linear regression. A few things I noticed when doing this: \
+1. Being a female would result in less wages. This might be explained in one of two ways: first, females are uneqaully treated; second females often give birth to child at their best ages, which affect their abilities to climb up the ladder. While both could be true, politicans certainly believes solely on the first cause. \
+2. College degree is extreamly important and results in 20K difference in wages from someone without high school degree and almost 15K from someone with a high school degree. Advanced degree, however, doesn't seem to be affecting the wages as much as college degree. I guess the gist of this is go to college? \
+3. While rent and ownership cost do matter, the effect is so small that they are actually not correlating with wages in any significant way. This is surprising to find out. \
+4. Family size contributes negatively to the wages, but number of child contributes positively to the wages. It's understandable that when the family size is bigger, there are more things to take care of and therefore less time to make money. Positive contribution from number of children could be explained in one of two ways: first, only people who can afford to raise more than one child would give birth to new children; second, increasing number of children makes people work... harder? I do like the second explaination better though.
